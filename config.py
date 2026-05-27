@@ -1,0 +1,20 @@
+import os
+
+# Delta API
+DELTA_API_KEY = os.getenv("DELTA_API_KEY")
+DELTA_API_SECRET = os.getenv("DELTA_API_SECRET")
+DELTA_BASE_URL = "https://api.delta.exchange"
+
+# Security
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "change_this_secret")
+
+# Risk defaults
+MIN_BALANCE_INR = 1000
+MAX_LEVERAGE = 10
+MIN_LEVERAGE = 5
+DEFAULT_STOP_LOSS_PERCENT = 2.0
+DEFAULT_TAKE_PROFIT_PERCENT = 2.0
+
+# Bot behavior
+ALLOW_NEW_TRADE_IF_POSITION_OPEN = False
+REQUEST_TIMEOUT = 10
