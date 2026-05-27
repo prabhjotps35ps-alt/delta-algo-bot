@@ -44,6 +44,10 @@ def webhook():
         symbol = data.get("symbol")
         side = data.get("side")
         size = data.get("size", 1)
+if position_manager.has_open_position(symbol):
+    return jsonify({
+        "error": "Open position already exists"
+    }), 400
 
         if side not in ["buy", "sell"]:
             return jsonify({"error": "Invalid side"}), 400
