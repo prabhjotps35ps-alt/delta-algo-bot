@@ -1,0 +1,60 @@
+from flask import Flask, request, jsonify
+from delta_client import DeltaClient
+from config import WEBHOOK_SECRET
+
+app = Flask(__name__)
+delta = DeltaClient()
+
+
+@app.route("/")
+def home():
+    return jsonify({
+        "status": "bot running"
+    })
+
+
+@app.route("/health")
+def health():
+    try:
+        balance = delta.get_balance()
+        return jsonify({
+            "status": "healthy",
+            "delta_connected": True,
+            "balance_check": balance
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "delta_connected": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "No JSON payload"}), 400
+
+        if data.get("secret") != WEBHOOK_SECRET:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        symbol = data.get("symbol")
+        side = data.get("side")
+        size = data.get("size", 1)
+
+        if side not in ["buy", "sell"]:
+            return jsonify({"error": "Invalid side"}), 400
+
+        result = delta.place_market_order(symbol, side, size)
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
