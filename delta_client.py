@@ -71,3 +71,17 @@ class DeltaClient:
         )
 
         return response.json()
+def get_positions(self):
+    path = "/v2/positions"
+    method = "GET"
+    payload = ""
+
+    headers = self._headers(payload, path, method)
+
+    response = requests.get(
+        DELTA_BASE_URL + path,
+        headers=headers,
+        timeout=REQUEST_TIMEOUT
+    )
+
+    return response.json()
