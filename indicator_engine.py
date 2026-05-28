@@ -272,3 +272,88 @@ class IndicatorEngine:
             ),
             "trend": trend
         }
+import pandas as pd
+import ta
+
+
+class IndicatorEngine:
+
+    def __init__(self):
+
+        pass
+
+    # =========================
+    # EMA
+    # =========================
+
+    def ema(
+        self,
+        close_prices,
+        period=20
+    ):
+
+        series = pd.Series(
+            close_prices
+        )
+
+        ema_value = ta.trend.ema_indicator(
+            series,
+            window=period
+        )
+
+        return float(
+            ema_value.iloc[-1]
+        )
+
+    # =========================
+    # RSI
+    # =========================
+
+    def rsi(
+        self,
+        close_prices,
+        period=14
+    ):
+
+        series = pd.Series(
+            close_prices
+        )
+
+        rsi_value = ta.momentum.rsi(
+            series,
+            window=period
+        )
+
+        return float(
+            rsi_value.iloc[-1]
+        )
+
+    # =========================
+    # MACD
+    # =========================
+
+    def macd(
+        self,
+        close_prices
+    ):
+
+        series = pd.Series(
+            close_prices
+        )
+
+        macd = ta.trend.macd(
+            series
+        )
+
+        signal = ta.trend.macd_signal(
+            series
+        )
+
+        return {
+            "macd": float(
+                macd.iloc[-1]
+            ),
+            "signal": float(
+                signal.iloc[-1]
+            )
+        }
