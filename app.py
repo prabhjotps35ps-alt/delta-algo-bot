@@ -1,37 +1,38 @@
 from flask import Flask, jsonify
 
-from delta_client import DeltaClient
-
 app = Flask(__name__)
-
-delta = DeltaClient()
 
 
 @app.route("/")
 def home():
 
-    return "Bot Running"
+    return jsonify({
+        "status": "running",
+        "message": "Bot Running Successfully"
+    })
 
 
 @app.route("/health")
 def health():
 
     return jsonify({
-        "status": "ok"
+        "status": "ok",
+        "server": "active"
     })
 
 
-@app.route("/delta-test")
-def delta_test():
+@app.route("/ping")
+def ping():
 
-    return jsonify(
-        delta.test()
-    )
+    return jsonify({
+        "response": "pong"
+    })
 
 
 if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=10000
+        port=10000,
+        debug=False
     )
