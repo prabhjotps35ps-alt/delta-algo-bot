@@ -1,4 +1,19 @@
 __pycache__/
 *.pyc
+
+# Environment files
 .env
 venv/
+
+# Trading bot files
+trade_journal.json
+bot_state.json
+
+# Logs
+*.log
+
+# VS Code
+.vscode/
+
+# Android/Pydroid temp
+*.tmp
