@@ -41,7 +41,18 @@ def webhook():
         if data.get("secret") != WEBHOOK_SECRET:
             return jsonify({"error": "Unauthorized"}), 401
 
-        symbol = data.get("symbol")
+        balance_data = delta.get_balance()
+
+balance = 1000
+
+try:
+    result = balance_data.get("result", [])
+    if result:
+        balance = float(result[0].get("balance", 1000))
+except Exception:
+    pass
+
+size = risk_manager.calculate_position_size(balance)
         side = data.get("side")
         size = data.get("size", 1)
 if position_manager.has_open_position(symbol):
