@@ -3,6 +3,10 @@ from flask import Flask, jsonify
 app = Flask(__name__)
 
 
+# =========================
+# HOME ROUTE
+# =========================
+
 @app.route("/")
 def home():
 
@@ -11,6 +15,10 @@ def home():
         "message": "Bot Running Successfully"
     })
 
+
+# =========================
+# HEALTH ROUTE
+# =========================
 
 @app.route("/health")
 def health():
@@ -21,6 +29,10 @@ def health():
     })
 
 
+# =========================
+# PING ROUTE
+# =========================
+
 @app.route("/ping")
 def ping():
 
@@ -28,6 +40,30 @@ def ping():
         "response": "pong"
     })
 
+
+# =========================
+# ERROR HANDLER
+# =========================
+
+@app.errorhandler(404)
+def not_found(error):
+
+    return jsonify({
+        "error": "Route Not Found"
+    }), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+
+    return jsonify({
+        "error": "Internal Server Error"
+    }), 500
+
+
+# =========================
+# MAIN
+# =========================
 
 if __name__ == "__main__":
 
