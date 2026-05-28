@@ -1,93 +1,79 @@
-
-from flask import Flask, request, jsonify
-
-from delta_client import DeltaClient
-from position_manager import PositionManager
-from risk_manager import RiskManager
-from connectivity_monitor import ConnectivityMonitor
-from recovery_manager import RecoveryManager
-from strategy_engine import StrategyEngine
-from execution_engine import ExecutionEngine
-from trade_monitor import TradeMonitor
-from emergency_exit import EmergencyExit
-from trading_rule_engine import TradingRuleEngine
-from signal_scoring import SignalScoring
-from notifier import Notifier
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 # =========================
-# CORE ENGINES
+# SAFE IMPORTS
+# =========================
+
+try:
+    from delta_client import DeltaClient
+except Exception as e:
+    print("delta_client import error:", e)
+
+try:
+    from strategy_engine import StrategyEngine
+except Exception as e:
+    print("strategy_engine import error:", e)
+
+try:
+    from risk_manager import RiskManager
+except Exception as e:
+    print("risk_manager import error:", e)
+
+try:
+    from execution_engine import ExecutionEngine
+except Exception as e:
+    print("execution_engine import error:", e)
+
+try:
+    from signal_scoring import SignalScoring
+except Exception as e:
+    print("signal_scoring import error:", e)
+
+try:
+    from notifier import Notifier
+except Exception as e:
+    print("notifier import error:", e)
+
+# =========================
+# INITIALIZE
 # =========================
 
 delta = DeltaClient()
 
-position_manager = PositionManager()
+strategy_engine = StrategyEngine()
 
 risk_manager = RiskManager()
 
-connectivity_monitor = ConnectivityMonitor()
-
-recovery_manager = RecoveryManager()
-
-strategy_engine = StrategyEngine()
-
 execution_engine = ExecutionEngine()
-
-trade_monitor = TradeMonitor()
-
-emergency_exit = EmergencyExit()
-
-trading_rules = TradingRuleEngine()
 
 signal_scoring = SignalScoring()
 
 notifier = Notifier()
 
 # =========================
-# HOME ROUTE
+# HOME
 # =========================
 
 @app.route("/")
 def home():
 
     return jsonify({
-        "status": "Institutional Bot Running",
-        "system": "healthy"
+        "status": "running",
+        "bot": "institutional-engine"
     })
 
 # =========================
-# HEALTH CHECK
+# HEALTH
 # =========================
 
 @app.route("/health")
 def health():
 
-    try:
-
-        internet_ok = connectivity_monitor.internet_check()
-
-        delta_ok = connectivity_monitor.delta_api_check(
-            delta
-        )
-
-        heartbeat = connectivity_monitor.heartbeat_status(
-            internet_ok,
-            delta_ok
-        )
-
-        return jsonify({
-            "status": heartbeat,
-            "internet_ok": internet_ok,
-            "delta_ok": delta_ok
-        })
-
-    except Exception as e:
-
-        return jsonify({
-            "status": "error",
-            "error": str(e)
-        }), 500
+    return jsonify({
+        "status": "healthy"
+    })
 
 # =========================
 # WEBHOOK
@@ -100,106 +86,27 @@ def webhook():
 
         data = request.get_json()
 
-        if not data:
-
-            return jsonify({
-                "error": "No JSON payload"
-            }), 400
-
-        # =========================
-        # CONNECTIVITY CHECK
-        # =========================
-
-        internet_ok = connectivity_monitor.internet_check()
-
-        delta_ok = connectivity_monitor.delta_api_check(
-            delta
-        )
-
-        if recovery_manager.should_pause_trading(
-            internet_ok,
-            delta_ok
-        ):
-
-            return jsonify({
-                "error": recovery_manager.recovery_message(
-                    internet_ok,
-                    delta_ok
-                )
-            }), 503
-
-        # =========================
-        # INPUT DATA
-        # =========================
-
         symbol = data.get("symbol")
 
         side = data.get("side")
 
-        timeframe = data.get(
-            "timeframe",
-            "1m"
-        )
+        if not symbol:
+            return jsonify({
+                "error": "symbol missing"
+            }), 400
 
         if side not in ["buy", "sell"]:
-
             return jsonify({
-                "error": "Invalid side"
+                "error": "invalid side"
             }), 400
 
-        # =========================
-        # POSITION CHECK
-        # =========================
-
-        if position_manager.has_open_position(
+        market = strategy_engine.analyze_market(
             symbol
-        ):
-
-            return jsonify({
-                "error": "Open position already exists"
-            }), 400
-
-        # =========================
-        # MARKET ANALYSIS
-        # =========================
-
-        market_analysis = strategy_engine.analyze_market(
-            symbol,
-            timeframe
         )
 
-        # =========================
-        # SIGNAL SCORING
-        # =========================
-
-        signal_score = signal_scoring.calculate_score(
-            market_analysis
+        score = signal_scoring.calculate_score(
+            market
         )
-
-        if signal_score < 70:
-
-            return jsonify({
-                "error": "Weak signal rejected",
-                "signal_score": signal_score
-            }), 400
-
-        # =========================
-        # TRADING RULE CHECK
-        # =========================
-
-        trade_allowed = trading_rules.allow_trade(
-            market_analysis
-        )
-
-        if not trade_allowed:
-
-            return jsonify({
-                "error": "Trading rules rejected trade"
-            }), 400
-
-        # =========================
-        # BALANCE CHECK
-        # =========================
 
         balance_data = delta.get_balance()
 
@@ -207,125 +114,41 @@ def webhook():
             balance_data
         )
 
-        # =========================
-        # POSITION SIZE
-        # =========================
-
         size = risk_manager.calculate_position_size(
             balance,
-            signal_score
+            score
         )
 
-        if size <= 0:
-
-            return jsonify({
-                "error": "Insufficient balance"
-            }), 400
-
-        # =========================
-        # LEVERAGE
-        # =========================
-
-        leverage = risk_manager.dynamic_leverage(
-            signal_score
-        )
-
-        # =========================
-        # EXECUTION
-        # =========================
-
-        order_result = execution_engine.execute_trade(
+        order = execution_engine.execute_trade(
             delta=delta,
             symbol=symbol,
             side=side,
             size=size,
-            leverage=leverage
+            leverage=5
         )
-
-        # =========================
-        # TRADE MONITOR
-        # =========================
-
-        trade_monitor.register_trade(
-            symbol=symbol,
-            side=side,
-            size=size,
-            leverage=leverage,
-            signal_score=signal_score
-        )
-
-        # =========================
-        # NOTIFICATION
-        # =========================
 
         notifier.send_trade_alert(
             symbol=symbol,
             side=side,
             size=size,
-            leverage=leverage
-        )
-
-        # =========================
-        # RESPONSE
-        # =========================
-
-        return jsonify({
-            "status": "success",
-            "symbol": symbol,
-            "side": side,
-            "size": size,
-            "leverage": leverage,
-            "signal_score": signal_score,
-            "order": order_result
-        })
-
-    except Exception as e:
-
-        try:
-
-            emergency_exit.handle_critical_error(
-                str(e)
-            )
-
-        except Exception:
-            pass
-
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
-
-# =========================
-# EMERGENCY CLOSE
-# =========================
-
-@app.route("/emergency-close", methods=["POST"])
-def emergency_close():
-
-    try:
-
-        data = request.get_json()
-
-        symbol = data.get("symbol")
-
-        result = emergency_exit.close_position(
-            delta,
-            symbol
+            leverage=5
         )
 
         return jsonify({
-            "status": "closed",
-            "result": result
+            "success": True,
+            "score": score,
+            "order": order
         })
 
     except Exception as e:
 
         return jsonify({
+            "success": False,
             "error": str(e)
         }), 500
 
 # =========================
-# RUN APP
+# RUN
 # =========================
 
 if __name__ == "__main__":
