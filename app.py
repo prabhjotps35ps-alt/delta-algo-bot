@@ -66,3 +66,8 @@ if __name__ == "__main__":
 from position_manager import PositionManager
 
 position_manager = PositionManager()
+
+from risk_manager import RiskManager
+
+risk_manager = RiskManager()
+position_manager = PositionManager()
