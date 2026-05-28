@@ -207,3 +207,105 @@ if __name__ == "__main__":
     )
 
     manager.start_live_trading()
+# =========================
+# T3 RIBBON SIGNAL ENGINE
+# =========================
+
+def signal_engine(
+    self,
+    analysis
+):
+
+    ema_fast = analysis["ema_20"]
+
+    ema_slow = analysis["ema_50"]
+
+    rsi = analysis["rsi"]
+
+    macd = analysis["macd"]["macd"]
+
+    signal = analysis["macd"]["signal"]
+
+    # =========================
+    # STRONG BUY
+    # =========================
+
+    if (
+
+        ema_fast > ema_slow
+
+        and
+
+        rsi > 55
+
+        and
+
+        rsi < 70
+
+        and
+
+        macd > signal
+
+    ):
+
+        return {
+
+            "signal": "buy",
+
+            "strength": "strong_bullish"
+
+        }
+
+    # =========================
+    # STRONG SELL
+    # =========================
+
+    if (
+
+        ema_fast < ema_slow
+
+        and
+
+        rsi < 45
+
+        and
+
+        macd < signal
+
+    ):
+
+        return {
+
+            "signal": "sell",
+
+            "strength": "strong_bearish"
+
+        }
+
+    # =========================
+    # SIDEWAYS MARKET
+    # =========================
+
+    if abs(
+        ema_fast - ema_slow
+    ) < 20:
+
+        return {
+
+            "signal": "wait",
+
+            "strength": "sideways"
+
+        }
+
+    # =========================
+    # DEFAULT
+    # =========================
+
+    return {
+
+        "signal": "wait",
+
+        "strength": "neutral"
+
+    }
