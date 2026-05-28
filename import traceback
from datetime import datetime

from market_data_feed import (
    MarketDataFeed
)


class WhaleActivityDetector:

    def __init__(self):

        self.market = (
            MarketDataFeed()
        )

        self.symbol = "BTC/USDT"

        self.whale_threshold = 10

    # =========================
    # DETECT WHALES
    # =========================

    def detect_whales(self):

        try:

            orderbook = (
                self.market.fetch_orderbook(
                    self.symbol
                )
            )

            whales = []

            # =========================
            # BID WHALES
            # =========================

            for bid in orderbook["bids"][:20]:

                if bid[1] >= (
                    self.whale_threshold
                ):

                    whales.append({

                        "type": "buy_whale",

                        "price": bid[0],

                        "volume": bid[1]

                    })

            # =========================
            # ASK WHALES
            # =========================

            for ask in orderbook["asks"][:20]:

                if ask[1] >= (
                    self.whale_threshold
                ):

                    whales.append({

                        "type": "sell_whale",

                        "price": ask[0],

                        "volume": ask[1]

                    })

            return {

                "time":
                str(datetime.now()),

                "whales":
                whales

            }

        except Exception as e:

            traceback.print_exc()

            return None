@@ -1,0 +1,91 @@
+import traceback
+from datetime import datetime
+
+from market_data_feed import (
+    MarketDataFeed
+)
+
+
+class WhaleActivityDetector:
+
+    def __init__(self):
+
+        self.market = (
+            MarketDataFeed()
+        )
+
+        self.symbol = "BTC/USDT"
+
+        self.whale_threshold = 10
+
+    # =========================
+    # DETECT WHALES
+    # =========================
+
+    def detect_whales(self):
+
+        try:
+
+            orderbook = (
+                self.market.fetch_orderbook(
+                    self.symbol
+                )
+            )
+
+            whales = []
+
+            # =========================
+            # BID WHALES
+            # =========================
+
+            for bid in orderbook["bids"][:20]:
+
+                if bid[1] >= (
+                    self.whale_threshold
+                ):
+
+                    whales.append({
+
+                        "type": "buy_whale",
+
+                        "price": bid[0],
+
+                        "volume": bid[1]
+
+                    })
+
+            # =========================
+            # ASK WHALES
+            # =========================
+
+            for ask in orderbook["asks"][:20]:
+
+                if ask[1] >= (
+                    self.whale_threshold
+                ):
+
+                    whales.append({
+
+                        "type": "sell_whale",
+
+                        "price": ask[0],
+
+                        "volume": ask[1]
+
+                    })
+
+            return {
+
+                "time":
+                str(datetime.now()),
+
+                "whales":
+                whales
+
+            }
+
+        except Exception as e:
+
+            traceback.print_exc()
+
+            return None
